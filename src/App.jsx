@@ -18,6 +18,16 @@ const CATEGORIES = [
   { id: "other", icon: "📌", th: "อื่นๆ", en: "Other" },
 ];
 
+const INCOME_CATEGORIES = [
+  { id: "salary", icon: "💼", th: "เงินเดือน", en: "Salary" },
+  { id: "dividend", icon: "📈", th: "เงินปันผล", en: "Dividend" },
+  { id: "freelance", icon: "💻", th: "ฟรีแลนซ์", en: "Freelance" },
+  { id: "bonus", icon: "🎁", th: "โบนัส", en: "Bonus" },
+  { id: "interest", icon: "🏦", th: "ดอกเบี้ย", en: "Interest" },
+  { id: "trading_income", icon: "📊", th: "กำไรเทรด", en: "Trading Profit" },
+  { id: "other_income", icon: "💰", th: "อื่นๆ", en: "Other" },
+];
+
 const THAI_BANKS = [
   { id: "kbank", name: "กสิกรไทย", en: "KBank", color: "#138f2d", icon: "🟢" },
   { id: "scb", name: "ไทยพาณิชย์", en: "SCB", color: "#4e2a84", icon: "🟣" },
@@ -114,6 +124,7 @@ const T = {
    ═══════════════════════════════════════════ */
 
 function fmt(n) { return n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+function getCat(id) { return CATEGORIES.find((c) => c.id === id) || INCOME_CATEGORIES.find((c) => c.id === id) || { id, icon: "📌", th: id, en: id }; }
 function getWeekStart(d) { const dt = new Date(d); const day = dt.getDay(); dt.setDate(dt.getDate() - day + (day === 0 ? -6 : 1)); return dt.toISOString().slice(0, 10); }
 function getDayLabel(s) { const d = new Date(s); return `${d.getDate()}/${d.getMonth() + 1}`; }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -394,7 +405,7 @@ export default function App() {
 
   const exportCSV = () => {
     const header = "Date,Type,Category,Amount,Wallet,Note\n";
-    const rows = [...expenses].sort((a, b) => b.date.localeCompare(a.date)).map((e) => `${e.date},${e.type},${CATEGORIES.find((c) => c.id === e.category)?.en || e.category},${e.amount},"${getWalletLabel(e.walletId)}","${e.note || ""}"`).join("\n");
+    const rows = [...expenses].sort((a, b) => b.date.localeCompare(a.date)).map((e) => `${e.date},${e.type},${getCat(e.category).en},${e.amount},"${getWalletLabel(e.walletId)}","${e.note || ""}"`).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" }); const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `expenses-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(url);
   };
@@ -615,7 +626,7 @@ export default function App() {
               {expenses.length > 0 && <button className="btn btn-ghost btn-sm" onClick={exportCSV}>📤 {t.exportCSV}</button>}
             </div>
             {expenses.length === 0 ? <div style={{ textAlign: "center", padding: 30, color: "#94a3b8", fontSize: 14 }}>{t.noData}</div> : expenses.slice(0, 6).map((e) => {
-              const cat = CATEGORIES.find((c) => c.id === e.category); const isI = e.type === "income"; const isT = e.type === "transfer";
+              const cat = getCat(e.category); const isI = e.type === "income"; const isT = e.type === "transfer";
               return (<div className="expense-row" key={e.id}><div style={{ fontSize: 20 }}>{isT ? "🔄" : cat?.icon}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 500 }}>{isT ? (lang === "th" ? "โอนเงิน" : "Transfer") : cat?.[lang]}</div><div style={{ fontSize: 10, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.note || e.date}{e.walletId ? ` · ${getWalletLabel(e.walletId)}` : ""}</div></div>
                 <div className="mono" style={{ fontSize: 14, fontWeight: 600, color: isI ? "#10b981" : isT ? "#6366f1" : "#ef4444" }}>{isI ? "+" : isT ? "" : "-"}฿{fmt(e.amount)}</div></div>);
             })}
@@ -860,7 +871,7 @@ export default function App() {
               <div key={date} style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600, marginBottom: 8, display: "flex", justifyContent: "space-between" }}><span>{date === todayStr ? (lang === "th" ? "วันนี้" : "Today") : date}</span><span className="mono" style={{ color: "#94a3b8" }}>฿{fmt(items.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0))}</span></div>
                 <div className="card" style={{ marginBottom: 0 }}>
-                  {items.map((e) => { const cat = CATEGORIES.find((c) => c.id === e.category); const isI = e.type === "income"; const isT = e.type === "transfer"; return (
+                  {items.map((e) => { const cat = getCat(e.category); const isI = e.type === "income"; const isT = e.type === "transfer"; return (
                     <div className="expense-row" key={e.id}><div style={{ fontSize: 20 }}>{isT ? "🔄" : cat?.icon}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 500 }}>{isT ? (lang === "th" ? "โอนเงิน" : "Transfer") : cat?.[lang]}</div><div style={{ fontSize: 10, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.note || ""}{e.walletId ? ` · ${getWalletLabel(e.walletId)}` : ""}</div></div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="mono" style={{ fontSize: 14, fontWeight: 600, color: isI ? "#10b981" : isT ? "#6366f1" : "#ef4444" }}>{isI ? "+" : isT ? "" : "-"}฿{fmt(e.amount)}</span>{!isT && <button onClick={() => deleteExpense(e.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 12, padding: 2 }}>✕</button>}</div></div>
                   ); })}
@@ -905,13 +916,13 @@ export default function App() {
 
       <Modal show={showAdd} onClose={() => setShowAdd(false)} title={expType === "expense" ? t.addExpense : t.addIncome}>
         <div className="type-toggle" style={{ marginBottom: 16 }}>
-          <button className="type-btn" style={{ background: expType === "expense" ? "rgba(239,68,68,0.2)" : "transparent", color: expType === "expense" ? "#ef4444" : "#64748b" }} onClick={() => setExpType("expense")}>💸 {t.expense}</button>
-          <button className="type-btn" style={{ background: expType === "income" ? "rgba(16,185,129,0.2)" : "transparent", color: expType === "income" ? "#10b981" : "#64748b" }} onClick={() => setExpType("income")}>💰 {t.income}</button>
+          <button className="type-btn" style={{ background: expType === "expense" ? "#fef2f2" : "transparent", color: expType === "expense" ? "#ef4444" : "#94a3b8" }} onClick={() => { setExpType("expense"); setSelectedCat("food"); }}>💸 {t.expense}</button>
+          <button className="type-btn" style={{ background: expType === "income" ? "#ecfdf5" : "transparent", color: expType === "income" ? "#10b981" : "#94a3b8" }} onClick={() => { setExpType("income"); setSelectedCat("salary"); }}>💰 {t.income}</button>
         </div>
         <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>{t.date}</div><input className="input" type="date" value={expDate} onChange={(e) => setExpDate(e.target.value)} /></div>
         <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>{t.amount}</div><input className="input mono" type="number" inputMode="decimal" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus style={{ fontSize: 24, fontWeight: 700, textAlign: "center", padding: "16px" }} /></div>
         {flatWallets.length > 0 && (<div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>{t.fromWallet}</div><select className="select" value={expWallet} onChange={(e) => setExpWallet(e.target.value)}><option value="">— {t.none} —</option>{flatWallets.map((fw) => <option key={fw.id} value={fw.id}>{fw.label} (฿{fmt(fw.balance || 0)})</option>)}</select></div>)}
-        <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>{t.category}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{CATEGORIES.map((c) => <Chip key={c.id} active={selectedCat === c.id} onClick={() => setSelectedCat(c.id)}>{c.icon} {c[lang]}</Chip>)}</div></div>
+        <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>{t.category}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{(expType === "income" ? INCOME_CATEGORIES : CATEGORIES).map((c) => <Chip key={c.id} active={selectedCat === c.id} onClick={() => setSelectedCat(c.id)}>{c.icon} {c[lang]}</Chip>)}</div></div>
         <div style={{ marginBottom: 20 }}><div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>{t.note}</div><input className="input" placeholder={lang === "th" ? "เช่น ข้าวมันไก่, BTC Long..." : "e.g. Chicken rice, BTC Long..."} value={note} onChange={(e) => setNote(e.target.value)} /></div>
         <button className="btn btn-primary" style={{ width: "100%", padding: 14, fontSize: 15 }} onClick={addExpenseAction}>{t.add}</button>
       </Modal>
